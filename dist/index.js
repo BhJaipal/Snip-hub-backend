@@ -1,45 +1,38 @@
-import { typeDefs } from "./schema.js";
+import {typeDefs} from "./schema.js";
 import chalk from "chalk";
-import { ApolloServer } from "@apollo/server";
-import { startStandaloneServer } from "@apollo/server/standalone";
-import { MongoClient } from "mongodb";
+import {ApolloServer} from "@apollo/server";
+import {startStandaloneServer} from "@apollo/server/standalone";
+import {MongoClient} from "mongodb";
 
-let connect = new MongoClient("mongodb://localhost:27017/");
-connect.connect().then(client => function (err, db) {
+let client = new MongoClient("mongodb://localhost:27017/");
+async function run() {
     let snipHub = client.db("snip-hub");
     let collectionNames = [];
-    snipHub.listCollections.toArray(function (_, collection) {
+    let fetching= await snipHub.listCollections();
+    let temp= await fetching.toArray();
+    temp.forEach(collection=> function () {
         collectionNames.push(collection.name);
-    })
+    });
+
 
     let resolvers = {
         Query: {
             langList: () => {
                 /** @type { { langName: string, codeBoxes: { title: string, code: string}[] }[] } */
                 let data = [];
-                snipHub.listCollections.toArray(function (_, collection) {
+                collectionNames.forEach(el=> function () {
                     data.push({
-                        langName: collection.langName,
-                        codeBoxes: collection.codeBoxes
+                        langName: el,
+                        codeBoxes: snipHub.collection(el).find()
                     });
                 });
                 return data;
             },
             langFind: (_, args) => {
-                /** @type { { langName: string, codeBoxes: { title: string, code: string}[] } } */
-                let data = {};
-                let out = {};
-                snipHub.listCollections.toArray(function (_, collection) {
-                    if (collection.langName === args.langName) {
-                        out = collection;
-                    }
-                });
-                data = {
-                    langName: out.langName,
-                    codeBoxes: out.codeBoxes
+                return {
+                    langName: args.langName,
+                    codeBoxes: snipHub.collection(args.langName).find()
                 };
-
-                return data;
             }
         },
         Mutation: {
@@ -48,11 +41,13 @@ connect.connect().then(client => function (err, db) {
              * @param { {langName: string, codeBox:{title:string,code:string}} } args
              * @return { {id:number, message: string} }
              * */
-            snipAdd: (_, args) => {
+            snipAdd: async  (_, args) => {
                 let status = {};
                 if (collectionNames.includes(args.langName)) {
                     let titles = [];
-                    snipHub.collection(args.langName).find()[0].codeBoxes.forEach(snip => titles.push(snip.title));
+                    let res = await snipHub.collection(args.langName).find();
+                    let codeBoxes= await res.toArray();
+                    codeBoxes.forEach(snip => {titles.push(snip.title)});
 
                     if (titles.includes(args.codeBox.title)) {
                         status = {
@@ -61,9 +56,7 @@ connect.connect().then(client => function (err, db) {
                         };
                     }
                     else {
-                        snipHub.collection(args.langName).updateOne({ langName: args.langName }, {
-                            codeBoxes: snipHub.collection(args.langName).find()[0].codeBoxes.push(args.codeBox)
-                        }).then(_ => { });
+                        await snipHub.collection(args.langName).insertOne(args.codeBox);
                         status = {
                             id: 1,
                             message: `Snippet added to ${args.langName} snippets`
@@ -71,15 +64,21 @@ connect.connect().then(client => function (err, db) {
                     }
                 }
                 else {
-                    snipHub.createCollection(args.langName).then(_ => { })
-                    snipHub.collection(args.langName).insertOne({
-                        langName: args.langName,
-                        codeBoxes: [args.codeBox]
-                    }).then(_ => { })
+                    await snipHub.createCollection(args.langName);
+                    await snipHub.collection(args.langName).insertOne(args.codeBox);
+
                     status = {
-                        id: 2,
-                        message: "Snippet with same title already exist"
+                        id: 0,
+                        message: `new ${args.langName} snippet list created\nYour snippet is added to ${args.langName} snippets`
                     };
+
+                        collectionNames = [];
+                        let fetching= await snipHub.listCollections();
+                        let temp= await fetching.toArray();
+                        temp.forEach(collection=> function () {
+                            collectionNames.push(collection.name);
+                        });
+
                 }
                 return status;
             }
@@ -92,11 +91,12 @@ connect.connect().then(client => function (err, db) {
         resolvers
     });
 
-    (async function () {
-        let { url: uri } = await startStandaloneServer(server, {
-            listen: { port: 3300 }
-        });
-    })();
+    let { url } = await startStandaloneServer(server, {
+        listen: { port: 3300 }
+    });
+
 
     console.log("server started at " + chalk.hex("#40A0F0").underline(url));
-});
+}
+
+run().catch(console.dir);
