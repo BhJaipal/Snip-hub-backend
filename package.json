@@ -14,7 +14,9 @@
   "dependencies": {
     "@apollo/server": "^4.9.3",
     "chalk": "^5.3.0",
-    "graphql": "^16.8.0"
+    "graphql": "^16.8.0",
+    "mongodb": "^6.2.0",
+    "mongoose": "^8.0.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"

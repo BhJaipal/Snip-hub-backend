@@ -1,92 +1,102 @@
 import { typeDefs } from "./schema.js";
 import chalk from "chalk";
-import { readFileSync, writeFileSync } from "fs";
-
-// apollo server
 import { ApolloServer } from "@apollo/server";
 import { startStandaloneServer } from "@apollo/server/standalone";
+import { MongoClient } from "mongodb";
 
-let resolvers = {
-    Query: {
-        langList: () => {
-            let read = readFileSync("dist/data.json", {
-                encoding: "utf8",
-                flag: "r"
-            });
-            let data = JSON.parse(read);
-            return data.languages;
-        },
-        langFind: (_, args) => {
-            let read = readFileSync("dist/data.json", {
-                encoding: "utf8", flag: "r"
-            });
-            let data = JSON.parse(read);
-            return data.languages.filter(
-                langBox => (
-                    (langBox.langName === args.langName))
-            )[0];
-        }
-    },
-    Mutation: {
-        snipAdd: (_, args) => {
-            let read = readFileSync("dist/data.json", {
-                encoding: "utf8",
-                flags: "r"
-            });
-            let data = JSON.parse(read);
-            let languages = data.languages;
-            let find = true;
-            let arg = args.codeSnip;
-            for (let langBox of languages) {
-                // for of loop on languages to match langName
-                if (arg.langName == langBox.langName) {
-                    // if langName Matches
-                    let find2 = true;
-                    for (let elem of langBox.codeBoxes) {
-                        // for each loop if a title matches 
-                        if (elem.title == arg.codeBox.title) { find2 = false; break; } else { }
+let connect = new MongoClient("mongodb://localhost:27017/");
+connect.connect().then(client => function (err, db) {
+    let snipHub = client.db("snip-hub");
+    let collectionNames = [];
+    snipHub.listCollections.toArray(function (_, collection) {
+        collectionNames.push(collection.name);
+    })
+
+    let resolvers = {
+        Query: {
+            langList: () => {
+                /** @type { { langName: string, codeBoxes: { title: string, code: string}[] }[] } */
+                let data = [];
+                snipHub.listCollections.toArray(function (_, collection) {
+                    data.push({
+                        langName: collection.langName,
+                        codeBoxes: collection.codeBoxes
+                    });
+                });
+                return data;
+            },
+            langFind: (_, args) => {
+                /** @type { { langName: string, codeBoxes: { title: string, code: string}[] } } */
+                let data = {};
+                let out = {};
+                snipHub.listCollections.toArray(function (_, collection) {
+                    if (collection.langName === args.langName) {
+                        out = collection;
                     }
-                    // if same title is present, do nothing
-                    if (!find2) { }
-                    // else add code snippet and break through loop 
+                });
+                data = {
+                    langName: out.langName,
+                    codeBoxes: out.codeBoxes
+                };
+
+                return data;
+            }
+        },
+        Mutation: {
+            /**
+             * @param _
+             * @param { {langName: string, codeBox:{title:string,code:string}} } args
+             * @return { {id:number, message: string} }
+             * */
+            snipAdd: (_, args) => {
+                let status = {};
+                if (collectionNames.includes(args.langName)) {
+                    let titles = [];
+                    snipHub.collection(args.langName).find()[0].codeBoxes.forEach(snip => titles.push(snip.title));
+
+                    if (titles.includes(args.codeBox.title)) {
+                        status = {
+                            id: 2,
+                            message: "Snippet with same title already exist"
+                        };
+                    }
                     else {
-                        langBox.codeBoxes.push({
-                            "title": arg.codeBox.title,
-                            "code": arg.codeBox.code
-                        });
-                        find = true;
-                        break;
+                        snipHub.collection(args.langName).updateOne({ langName: args.langName }, {
+                            codeBoxes: snipHub.collection(args.langName).find()[0].codeBoxes.push(args.codeBox)
+                        }).then(_ => { });
+                        status = {
+                            id: 1,
+                            message: `Snippet added to ${args.langName} snippets`
+                        };
                     }
                 }
+                else {
+                    snipHub.createCollection(args.langName).then(_ => { })
+                    snipHub.collection(args.langName).insertOne({
+                        langName: args.langName,
+                        codeBoxes: [args.codeBox]
+                    }).then(_ => { })
+                    status = {
+                        id: 2,
+                        message: "Snippet with same title already exist"
+                    };
+                }
+                return status;
             }
-            // if langName also not found, add new language and code snippet
-            if (!find) {
-                languages.push({
-                    id: languages.length,
-                    langName: arg.langName,
-                    codeBoxes: [{
-                        title: arg.codeBox.title,
-                        code: arg.codeBox.code
-                    }]
-                });
-            } else { }
-            writeFileSync("dist/data.json",
-                JSON.stringify({
-                    "languages": languages
-                }));
-            return languages.filter(langBox => langBox.langName === arg.langName)[0];
         }
-    }
-};
-// with apollo
+    };
+    // with apollo
 
-let server = new ApolloServer({
-    typeDefs,
-    resolvers
+    let server = new ApolloServer({
+        typeDefs,
+        resolvers
+    });
+
+    (async function () {
+        let { url: uri } = await startStandaloneServer(server, {
+            listen: { port: 3300 }
+        });
+    })();
+
+    console.log("server started at " + chalk.hex("#40A0F0").underline(url));
 });
-
-let { url } = await startStandaloneServer(server, {
-    listen: { port: 3300 }
-});
-
-console.log("server started at " + chalk.hex("#40A0F0").underline(url));

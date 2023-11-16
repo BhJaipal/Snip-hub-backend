@@ -4,16 +4,19 @@ type CodeBox{
   code: String!
 }
 type lang{
-  id: ID!
   langName: String!
   codeBoxes: [CodeBox]!
+}
+type returnStats{
+  id: Int!
+  message: String!
 }
 type Query{
   langList: [lang!]
   langFind(langName: String!): lang!
 }
 type Mutation{
-  snipAdd(codeSnip: snipBox!): lang!
+  snipAdd(codeSnip: snipBox!): returnStats!
 }
 input snipBox{
   langName: String!
