@@ -43,6 +43,9 @@ async function run() {
              * @return { any } {{id:number, message: string}}
              * */
             snipAdd: async  (_, args) => {
+                /**
+                 * @type {{id: number, message: string}}
+                 */
                 let status = {};
                 let codeSnip= args.codeSnip;
                 if (collectionNames.includes(codeSnip["langName"])) {
@@ -61,7 +64,7 @@ async function run() {
                             title: codeSnip["codeBox"]["title"],
                             code: codeSnip["codeBox"]["code"]
                         });
-                        status = {
+                        status= {
                             id: 1,
                             message: `Snippet added to ${codeSnip["langName"]} snippets`
                         };
@@ -86,7 +89,7 @@ async function run() {
                     });
 
                 }
-                return /*{codeBoxes: [codeSnip.codeBox], langName: codeSnip.langName}*/ status;
+                return status;
             }
         }
     };
