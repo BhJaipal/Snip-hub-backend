@@ -12,7 +12,7 @@ type returnStats{
   message: String!
 }
 type Query{
-  langList: [lang!]
+  langList: [lang!]!
   langFind(langName: String!): lang!
 }
 type Mutation{
