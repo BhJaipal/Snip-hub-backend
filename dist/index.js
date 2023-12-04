@@ -34,6 +34,9 @@ async function run() {
                     langName: args.langName,
                     codeBoxes
                 };
+            },
+            langNames: async () => {
+            	return collectionNames;
             }
         },
         Mutation: {

@@ -14,6 +14,7 @@ type returnStats{
 type Query{
   langList: [lang!]!
   langFind(langName: String!): lang!
+  langNames: [String!]!
 }
 type Mutation{
   snipAdd(codeSnip: snipBox!): returnStats!
