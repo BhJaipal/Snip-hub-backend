@@ -1,0 +1,21 @@
+[{
+  "_id": {
+    "$oid": "65bb9f896764bd8364cd504a"
+  },
+  "title": "ESM import and class object",
+  "code": "import { Person } from \"./person\";\nlet person = new Person(\"Jaipal\", 18);\nperson.functionName(/* arguments if need any */);"
+},
+{
+  "_id": {
+    "$oid": "65bb9f896764bd8364cd504b"
+  },
+  "title": "Arrow function",
+  "code": "let functionName= () => {\n  // body ...\n}"
+},
+{
+  "_id": {
+    "$oid": "65bb9f896764bd8364cd504c"
+  },
+  "title": "CJS import",
+  "code": "let moduleName = require('module');"
+}]

@@ -1,0 +1,14 @@
+[{
+  "_id": {
+    "$oid": "65bb9f666764bd8364cd5047"
+  },
+  "title": "if statement",
+  "code": "if name == 'Jaipal': print('Hello Jaipal');\nelse: print('Hello World')"
+},
+{
+  "_id": {
+    "$oid": "65bba0696764bd8364cd504e"
+  },
+  "title": "Private members of class",
+  "code": "class Person:\n    def __init__(self, name, salary):\n        self.name= name\n        self.__salary= salary\nPerson1 = Person(\"Jaipal\", 100000)\nprint(Person1.__salary)\n# Throws error"
+}]

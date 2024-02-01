@@ -1,0 +1,21 @@
+[{
+  "_id": {
+    "$oid": "65bb9eed6764bd8364cd503d"
+  },
+  "title": "hello World program",
+  "code": "#include <stdio.h>\n\nint main() {\n  printf(\"Hello World\");\n  return 0;\n}"
+},
+{
+  "_id": {
+    "$oid": "65bb9f436764bd8364cd5043"
+  },
+  "title": "User Input",
+  "code": "#include <stdio.h>\n\nint main() {\n  char name[10];\n  printf(\"Enter your name: \");\n  scanf(\"%c\", &name);\n  printf(\"Hello %c\", name); \n  return 0;\n}"
+},
+{
+  "_id": {
+    "$oid": "65bb9f436764bd8364cd5044"
+  },
+  "title": "for loop",
+  "code": "#include <stdio.h>\n\nint main() {\n  for (int i=0; i<= val; i++) {\n    // your code\n  }\n}"
+}]
