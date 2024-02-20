@@ -1,4 +1,4 @@
-export const typeDefs= `#graphql
+export const typeDefs = `#graphql
 type CodeBox{
   title: String!
   code: String!
@@ -14,6 +14,7 @@ type returnStats{
 type Query{
   langList: [lang!]!
   langFind(langName: String!): lang!
+  titleFind(title: String!): [lang]
   langNames: [String!]!
 }
 type Mutation{

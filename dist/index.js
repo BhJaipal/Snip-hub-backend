@@ -28,6 +28,25 @@ async function run() {
                 }
                 return data;
             },
+            titleFind: async (_, args) => {
+                /**
+                 * @type { string }
+                 */
+                let title = args.title;
+                let langBoxes = [];
+                for (let el of collectionNames) {
+                    let out = await snipHub.collection(el).find({ title: { $regex: new RegExp(title.trim(), "ig") } }).toArray();
+                    console.log(out);
+                    if (out == 0) { }
+                    else {
+                        langBoxes.push({
+                            langName: el,
+                            codeBoxes: out
+                        })
+                    }
+                }
+                return langBoxes;
+            },
             langFind: async (_, args) => {
                 let codeBoxes = await snipHub.collection(args.langName).find().toArray();
                 return {
