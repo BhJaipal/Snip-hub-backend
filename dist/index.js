@@ -45,6 +45,14 @@ async function run() {
                         })
                     }
                 }
+                if (langBoxes == 0) {
+                    return [
+                        {
+                            langName: "",
+                            codeBoxes: []
+                        }
+                    ]
+                }
                 return langBoxes;
             },
             langFind: async (_, args) => {
