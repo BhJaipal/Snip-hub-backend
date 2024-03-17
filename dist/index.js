@@ -26,6 +26,7 @@ async function run() {
                         codeBoxes
                     });
                 }
+                if (data == []) { return [{ langName: "", codeBoxes: [] }]; }
                 return data;
             },
             titleFind: async (_, args) => {
