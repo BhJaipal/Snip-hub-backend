@@ -1,7 +1,6 @@
 import { typeDefs } from "./schema.js";
 import chalk from "chalk";
 import { ApolloServer } from "@apollo/server";
-import { startStandaloneServer } from "@apollo/server/standalone";
 import { MongoClient } from "mongodb";
 import cors from "cors"
 import http from 'http';
@@ -9,8 +8,17 @@ import express from "express"
 import { expressMiddleware } from '@apollo/server/express4';
 import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer';
 
+/**
+ * @type { MongoClient }
+ */
 let client = new MongoClient("mongodb://localhost:27017/snip-hub");
+/**
+ * @type { import("mongodb").Db }
+ */
 let snipHub = client.db("snip-hub");
+/**
+ * @type { string[] }
+ */
 let collectionNames = [];
 let fetching = await snipHub.listCollections().toArray();
 fetching.forEach(collection => {
