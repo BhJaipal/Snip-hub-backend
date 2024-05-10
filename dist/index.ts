@@ -18,6 +18,17 @@ import {
 } from "./types.ts";
 import { readFileSync } from "fs";
 import { join } from "path";
+import {
+	FieldNode,
+	FragmentDefinitionNode,
+	GraphQLObjectType,
+	GraphQLOutputType,
+	GraphQLResolveInfo,
+	GraphQLSchema,
+	OperationDefinitionNode,
+} from "graphql";
+import { Path } from "mongoose";
+import { ObjMap } from "graphql/jsutils/ObjMap.js";
 
 let client = new MongoClient("mongodb://localhost:27017/snip-hub");
 let snipHub: Db = client.db("snip-hub");
@@ -45,7 +56,7 @@ let resolvers: Resolvers = {
 					.find()
 					.toArray();
 				let codeBoxes = codeBoxesWithId.map((el) => {
-					return { title: el.title, code: el.code };
+					return { title: el[0].title, code: el[0].code };
 				});
 				data.push({
 					langName: el,
@@ -65,14 +76,19 @@ let resolvers: Resolvers = {
 			let langBoxes = [];
 			for (let el of collectionNames) {
 				let out = await snipHub
-					.collection(el)
+					.collection<{ title: string; code: string }[]>(el)
 					.find({ title: { $regex: new RegExp(title.trim(), "ig") } })
 					.toArray();
 				if (out.length == 0) {
 				} else {
+					let codeBox: { title: string; code: string }[] = out.map(
+						(el) => {
+							return { title: el[0].title, code: el[0].code };
+						}
+					);
 					langBoxes.push({
 						langName: el,
-						codeBoxes: out,
+						codeBoxes: codeBox,
 					});
 				}
 			}
@@ -163,13 +179,12 @@ let resolvers: Resolvers = {
 	},
 };
 // with apollo
-
 async function run() {
 	if (__dirname == undefined) {
 		return;
 	}
 	console.log(join(__dirname, "../schema.gql"));
-	let typeDefs = await readFileSync(join(__dirname, "../schema.gql"));
+	let typeDefs = readFileSync(join(__dirname, "../schema.gql"));
 	const app = express();
 	const httpServer = http.createServer(app);
 	let appLimits = cors({
@@ -182,7 +197,7 @@ async function run() {
 	});
 	await server.start();
 	app.use("/", appLimits, express.json(), expressMiddleware(server));
-	await new Promise((resolve) => httpServer.listen({ port: 3300 }, resolve));
+	httpServer.listen({ port: 3300 });
 
 	console.log(
 		"🚀 Server started at " +
