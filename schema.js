@@ -1,4 +1,4 @@
-#graphql
+export default () => `#graphql
 type CodeBox {
 	title: String!
 	code: String!
@@ -27,4 +27,4 @@ input snipBox {
 input codeBlock {
 	title: String!
 	code: String!
-}
+}`

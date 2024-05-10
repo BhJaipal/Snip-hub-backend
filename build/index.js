@@ -15,8 +15,9 @@ export const resolvers = {
                     .collection(el)
                     .find()
                     .toArray();
+                console.log(codeBoxesWithId);
                 let codeBoxes = codeBoxesWithId.map((el) => {
-                    return { title: el[0].title, code: el[0].code };
+                    return { title: el.title, code: el.code };
                 });
                 data.push({
                     langName: el,
@@ -40,7 +41,7 @@ export const resolvers = {
                 }
                 else {
                     let codeBox = out.map((el) => {
-                        return { title: el[0].title, code: el[0].code };
+                        return { title: el.title, code: el.code };
                     });
                     langBoxes.push({
                         langName: el,

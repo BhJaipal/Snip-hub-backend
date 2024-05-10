@@ -37,7 +37,7 @@ export const resolvers: Resolvers = {
 					.find()
 					.toArray();
 				let codeBoxes = codeBoxesWithId.map((el) => {
-					return { title: el[0].title, code: el[0].code };
+					return { title: el.title, code: el.code };
 				});
 				data.push({
 					langName: el,
@@ -64,7 +64,7 @@ export const resolvers: Resolvers = {
 				} else {
 					let codeBox: { title: string; code: string }[] = out.map(
 						(el) => {
-							return { title: el[0].title, code: el[0].code };
+							return { title: el.title, code: el.code };
 						}
 					);
 					langBoxes.push({
