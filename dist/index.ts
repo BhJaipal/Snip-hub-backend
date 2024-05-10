@@ -27,13 +27,11 @@ export const resolvers: Resolvers = {
 				codeBoxes: { title: string; code: string }[];
 			}[] = [];
 			for (let el of collectionNames) {
-				let codeBoxesWithId: WithId<
-					{
-						title: string;
-						code: string;
-					}[]
-				>[] = await snipHub
-					.collection<{ title: string; code: string }[]>(el)
+				let codeBoxesWithId: WithId<{
+					title: string;
+					code: string;
+				}>[] = await snipHub
+					.collection<{ title: string; code: string }>(el)
 					.find()
 					.toArray();
 				let codeBoxes = codeBoxesWithId.map((el) => {
@@ -57,7 +55,7 @@ export const resolvers: Resolvers = {
 			let langBoxes = [];
 			for (let el of collectionNames) {
 				let out = await snipHub
-					.collection<{ title: string; code: string }[]>(el)
+					.collection<{ title: string; code: string }>(el)
 					.find({ title: { $regex: new RegExp(title.trim(), "ig") } })
 					.toArray();
 				if (out.length == 0) {
@@ -88,12 +86,12 @@ export const resolvers: Resolvers = {
 			args: RequireFields<QueryLangFindArgs, "langName">
 		) => {
 			let codeBoxes = await snipHub
-				.collection<{ title: string; code: string }[]>(args.langName)
+				.collection<{ title: string; code: string }>(args.langName)
 				.find()
 				.toArray();
 			return {
 				langName: args.langName,
-				codeBoxes: codeBoxes[0],
+				codeBoxes: codeBoxes,
 			};
 		},
 		langNames: () => {
