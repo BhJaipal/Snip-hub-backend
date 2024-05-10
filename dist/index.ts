@@ -1,12 +1,6 @@
-import chalk from "chalk";
-import { ApolloServer } from "@apollo/server";
 import { MongoClient } from "mongodb";
 import type { WithId } from "mongodb";
-import cors from "cors";
-import http from "http";
-import express from "express";
-import { expressMiddleware } from "@apollo/server/express4";
-import { ApolloServerPluginDrainHttpServer } from "@apollo/server/plugin/drainHttpServer";
+
 import type { Db } from "mongodb";
 import {
 	Resolvers,
@@ -16,19 +10,6 @@ import {
 	QueryLangFindArgs,
 	MutationSnipAddArgs,
 } from "./types.ts";
-import { readFileSync } from "fs";
-import { join } from "path";
-import {
-	FieldNode,
-	FragmentDefinitionNode,
-	GraphQLObjectType,
-	GraphQLOutputType,
-	GraphQLResolveInfo,
-	GraphQLSchema,
-	OperationDefinitionNode,
-} from "graphql";
-import { Path } from "mongoose";
-import { ObjMap } from "graphql/jsutils/ObjMap.js";
 
 let client = new MongoClient("mongodb://localhost:27017/snip-hub");
 let snipHub: Db = client.db("snip-hub");
@@ -38,7 +19,7 @@ fetching.forEach((collection) => {
 	collectionNames.push(collection.name);
 });
 
-let resolvers: Resolvers = {
+export const resolvers: Resolvers = {
 	Query: {
 		langList: async () => {
 			let data: {
@@ -178,31 +159,3 @@ let resolvers: Resolvers = {
 		},
 	},
 };
-// with apollo
-async function run() {
-	if (__dirname == undefined) {
-		return;
-	}
-	console.log(join(__dirname, "../schema.gql"));
-	let typeDefs = readFileSync(join(__dirname, "../schema.gql"));
-	const app = express();
-	const httpServer = http.createServer(app);
-	let appLimits = cors({
-		origin: ["http://localhost:3000", "http://localhost:3300"],
-	});
-	let server = new ApolloServer({
-		typeDefs: typeDefs.toString(),
-		resolvers,
-		plugins: [ApolloServerPluginDrainHttpServer({ httpServer })],
-	});
-	await server.start();
-	app.use("/", appLimits, express.json(), expressMiddleware(server));
-	httpServer.listen({ port: 3300 });
-
-	console.log(
-		"🚀 Server started at " +
-			chalk.hex("#40A0F0").underline("http://localhost:3300/")
-	);
-}
-
-run().catch(console.dir);
