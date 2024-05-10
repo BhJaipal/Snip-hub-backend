@@ -1,0 +1,6 @@
+schema: dist/schema.gql
+generates:
+    dist/types.ts:
+        plugins:
+            - "@graphql-codegen/typescript-resolvers"
+            - "@graphql-codegen/typescript"
