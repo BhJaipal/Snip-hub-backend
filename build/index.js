@@ -15,7 +15,6 @@ export const resolvers = {
                     .collection(el)
                     .find()
                     .toArray();
-                console.log(codeBoxesWithId);
                 let codeBoxes = codeBoxesWithId.map((el) => {
                     return { title: el.title, code: el.code };
                 });
