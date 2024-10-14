@@ -2,28 +2,53 @@ import { resolvers } from "./build/index.js"
 import cors from "cors";
 import http from "http";
 import express from "express";
+import { readFileSync } from "node:fs";
 import { expressMiddleware } from "@apollo/server/express4";
 import { ApolloServerPluginDrainHttpServer } from "@apollo/server/plugin/drainHttpServer";
 import chalk from "chalk";
 import { ApolloServer } from "@apollo/server";
 import typeDefs from "./schema.js"
+import { networkInterfaces } from "os"
+import { IncomingMessage, ServerResponse } from "node:http";
 
 const app = express();
-const httpServer = http.createServer(app);
-let appLimits = cors({
-	origin: ["http://localhost:3000", "http://localhost:3300"],
-});
+const httpServer = http.createServer({
+	hostname: "backend.snip-hub.com",
+	key: readFileSync("./domain.key"),
+	cert: readFileSync("./domain.crt"),
+	passPhrase: "J1i16a12"
+}, app);
+
+let ipAddress = networkInterfaces()["wlan0"][0].address;
+let whitelist = ["https://" + ipAddress + ":3000", "https://" + ipAddress + ":3300", "http://" + ipAddress + ":3000", "http://localhost:3000"]
+
+/**
+ * @param {IncomingMessage} req
+ * @param {ServerResponse} res
+ * @param {() => void} next
+ */
+let corsOptions = (req, res, next) => {
+	const origin = req.headers.origin;
+
+	if (!whitelist.includes(origin)) {
+		res.status(403).send('Forbidden')
+	} else {
+		res.setHeader("Access-Control-Allow-Origin", origin)
+		next();
+	}
+}
+
 let server = new ApolloServer({
 	typeDefs: typeDefs(),
 	resolvers,
 	plugins: [ApolloServerPluginDrainHttpServer({ httpServer })],
 });
 await server.start();
-app.use("/", appLimits, express.json(), expressMiddleware(server));
+app.use("/", corsOptions, express.json(), expressMiddleware(server));
 httpServer.listen({ port: 3300 });
 
 console.log(
 	"🚀 Server started at " +
-	chalk.hex("#40A0F0").underline("http://localhost:3300/")
+	chalk.hex("#40A0F0").underline("https://" + ipAddress + ":3300/")
 );
 

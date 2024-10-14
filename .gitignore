@@ -1,1 +1,7 @@
 node_modules
+domain.key
+domain.crt
+csr.pem
+bin/
+lib/
+__pycache__
