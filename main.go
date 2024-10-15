@@ -1,6 +1,7 @@
 package main
 
 import (
+	"backend/model"
 	"context"
 	"fmt"
 	"log"
@@ -11,28 +12,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-type Snippet struct {
-	title string
-	code string
-}
-type Language struct {
-	langName string
-	codeBoxes []Snippet
-}
-func (s Snippet) String () string {
-	return fmt.Sprintf("{\n\t\ttitle: '%v'\n\t\tcode: \"\"\"\n%v\n\"\"\"\n\t}", s.title, s.code)
-}
-func (lang Language) String () string {
-	strOut := "["
-	for i := 0; i < len(lang.codeBoxes); i++ {
-		strOut+= lang.codeBoxes[i].String()
-		if len(lang.codeBoxes) -1 != i {
-			strOut+= ",\n\t"
-		}
-	}
-	strOut += "]"
-	return fmt.Sprintf("{\n\tlangName: \"%v\"\n\tcodeBoxes: %v\n}", lang.langName, strOut)
-}
+var LangSnip model.Language
 func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -42,7 +22,7 @@ func main() {
 	}
 	// langSnips := []Language{};
 	snipHub := client.Database("snip-hub")
-	LangSnip := Language{"c", []Snippet{}}
+	LangSnip = model.Language{"c", []model.Snippet{}}
 	collection := snipHub.Collection("c")
 	cur, err := collection.Find(ctx, bson.D{})
 	if err != nil { log.Fatal(err) }
@@ -50,7 +30,7 @@ func main() {
 	for cur.Next(ctx) {
 		var result bson.D
 		err2 := cur.Decode(&result)
-		LangSnip.codeBoxes = append(LangSnip.codeBoxes, Snippet{fmt.Sprintf("%v", result[1].Value), fmt.Sprintf("%v", result[2].Value)})
+		LangSnip.codeBoxes = append(LangSnip.codeBoxes, model.Snippet{fmt.Sprintf("%v", result[1].Value), fmt.Sprintf("%v", result[2].Value)})
 		if err2 != nil { log.Fatal(err2) }
 	}
 	println(LangSnip.String())
