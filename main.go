@@ -1,41 +1,61 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"log"
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-type human struct {
-	name string
-	age uint8
-	isMale bool
+type Snippet struct {
+	title string
+	code string
 }
-func (h human) String() string {
-	return fmt.Sprintf("Name: %s\nAge: %d\nIsMale: %t", h.name, h.age, h.isMale)
+type Language struct {
+	langName string
+	codeBoxes []Snippet
 }
-
-func fibonacci(n uint8) uint8 {
-	if (n == 0 || n == 1) {
-		return n
-	} else {
-		return fibonacci(n-1) + fibonacci(n-2)
-	}
+func (s Snippet) String () string {
+	return fmt.Sprintf("{\n\t\ttitle: '%v'\n\t\tcode: \"\"\"\n%v\n\"\"\"\n\t}", s.title, s.code)
 }
-
-func main() {
-	jaipal := human{name: "Jaipal", age: 20, isMale: true}
-
-	fmt.Println(jaipal)
-	for i:=1; i <= 15; i++ {
-		if i % 15 == 0 {
-			fmt.Println("FizzBuzz")
-		} else if i % 3 == 0 {
-			fmt.Println("Fizz")
-		} else if i % 5 == 0 {
-			fmt.Println("Buzz")
-		} else {
-			fmt.Println(i)
+func (lang Language) String () string {
+	strOut := "["
+	for i := 0; i < len(lang.codeBoxes); i++ {
+		strOut+= lang.codeBoxes[i].String()
+		if len(lang.codeBoxes) -1 != i {
+			strOut+= ",\n\t"
 		}
 	}
-
-	fmt.Println(fibonacci(10))
+	strOut += "]"
+	return fmt.Sprintf("{\n\tlangName: \"%v\"\n\tcodeBoxes: %v\n}", lang.langName, strOut)
+}
+func main() {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	// langSnips := []Language{};
+	snipHub := client.Database("snip-hub")
+	LangSnip := Language{"c", []Snippet{}}
+	collection := snipHub.Collection("c")
+	cur, err := collection.Find(ctx, bson.D{})
+	if err != nil { log.Fatal(err) }
+	defer cur.Close(ctx)
+	for cur.Next(ctx) {
+		var result bson.D
+		err2 := cur.Decode(&result)
+		LangSnip.codeBoxes = append(LangSnip.codeBoxes, Snippet{fmt.Sprintf("%v", result[1].Value), fmt.Sprintf("%v", result[2].Value)})
+		if err2 != nil { log.Fatal(err2) }
+	}
+	println(LangSnip.String())
+	// langSnips = append(langSnips, LangSnip)
+	if err2 := cur.Err(); err2 != nil {
+		log.Fatal(err)
+	}
 }
