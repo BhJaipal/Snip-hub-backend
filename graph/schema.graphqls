@@ -1,0 +1,42 @@
+"Snippet with title"
+type CodeBox {
+	title: String!
+	code: String!
+}
+"Language with snippets"
+type Language {
+	langName: String!
+	codeBoxes: [CodeBox]!
+}
+
+type Query {
+	"All Languages and their snippets"
+	langList: [Language!]!
+	"Snippets of a selected language"
+	langFind(langName: String!): Language!
+	"Finds all snippets similar to given title"
+	titleFind(title: String!): [Language!]
+	"All languages snippets are avaliable in"
+	langNames: [String!]!
+}
+type Mutation {
+	"User Snippet api function"
+	snipAdd(codeSnip: SnipBox!): Signal!
+}
+
+"Language With snippet to be added"
+input SnipBox {
+	langName: String!
+	codeBox: CodeBlock!
+}
+"Snippet to be added"
+input CodeBlock {
+	title: String!
+	code: String!
+}
+
+"Returns status and message"
+type Signal {
+	status: Int!
+	message: String!
+}
