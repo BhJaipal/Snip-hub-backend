@@ -1,17 +1,17 @@
 "Snippet with title"
 type CodeBox {
-	title: String!
-	code: String!
+	Title: String!
+	Code: String!
 }
 "Language with snippets"
-type lang {
-	langName: String!
-	codeBoxes: [CodeBox]!
+type Language {
+	LangName: String!
+	CodeBoxes: [CodeBox]!
 }
 "Returns status and message"
-type returnStats {
-	id: Int!
-	message: String!
+type Signal {
+	Status: Int!
+	Message: String!
 }
 schema {
 	query: Query
@@ -19,25 +19,25 @@ schema {
 }
 type Query {
 	"All Languages and their snippets"
-	langList: [lang!]!
+	langList: [Language!]!
 	"Snippets of a selected language"
-	langFind(langName: String!): lang!
+	langFind(langName: String!): Language!
 	"Finds all snippets similar to given title"
-	titleFind(title: String!): [lang!]
+	titleFind(title: String!): [Language!]
 	"All languages snippets are avaliable in"
 	langNames: [String!]!
 }
 type Mutation {
 	"User Snippet api function"
-	snipAdd(codeSnip: snipBox!): returnStats!
+	snipAdd(codeSnip: SnipBox!): Signal!
 }
 "Language With snippet to be added"
-input snipBox {
-	langName: String!
-	codeBox: codeBlock!
+input SnipBox {
+	LangName: String!
+	CodeBox: CodeBlock!
 }
 "Snippet to be added"
-input codeBlock {
-	title: String!
-	code: String!
+input CodeBlock {
+	Title: String!
+	Code: String!
 }
