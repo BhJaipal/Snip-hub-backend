@@ -13,12 +13,11 @@ import (
 	"regexp"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // SnipAdd is the resolver for the snipAdd field.
 func (r *mutationResolver) SnipAdd(ctx context.Context, codeSnip model.SnipBox) (*model.Signal, error) {
-	snipHub, err := snipHubDBContext(ctx)
+	snipHub, _, err := snipHubDB()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -50,19 +49,19 @@ func (r *mutationResolver) SnipAdd(ctx context.Context, codeSnip model.SnipBox) 
 
 // LangList is the resolver for the langList field.
 func (r *queryResolver) LangList(ctx context.Context) ([]*model.Language, error) {
-	snipHub, err := snipHubDBContext(ctx)
+	snipHub, ctxDb, err := snipHubDB()
 	if err != nil {
 		log.Fatal(err)
 	}
 	langSnips := []*model.Language{};
-	for i := 0; i < len(langList()); i++ {
-		langNames_ := langNames()
+	langNames_ := langNames()
+	for i := 0; i < len(langNames_); i++ {
 		LangSnip := model.Language{LangName: langNames_[i], CodeBoxes: []*model.CodeBox{}}
 		collection := snipHub.Collection(langNames_[i])
-		cur, err := collection.Find(ctx, bson.D{})
+		cur, err := collection.Find(ctxDb, bson.D{})
 		if err != nil { log.Fatal(err) }
-		defer cur.Close(ctx)
-		for cur.Next(ctx) {
+		defer cur.Close(ctxDb)
+		for cur.Next(ctxDb) {
 			var result bson.D
 			err2 := cur.Decode(&result)
 			LangSnip.CodeBoxes = append(LangSnip.CodeBoxes, &model.CodeBox{Title: fmt.Sprintf("%v", result[1].Value), Code: fmt.Sprintf("%v", result[2].Value)})
@@ -80,21 +79,21 @@ func (r *queryResolver) LangList(ctx context.Context) ([]*model.Language, error)
 
 // LangFind is the resolver for the langFind field.
 func (r *queryResolver) LangFind(ctx context.Context, langName string) (*model.Language, error) {
-	snipHub, err := snipHubDBContext(ctx)
+	snipHub, ctxDb, err := snipHubDB()
 	if err != nil {
 		log.Fatal(err)
 	}
-	for i := 0; i < len(langNames()); i++ {
-		if langNames()[i] != langName {
+	langNames_ := langNames()
+	for i := 0; i < len(langNames_); i++ {
+		if langNames_[i] != langName {
 			continue
 		}
-		langNames_ := langNames()
 		LangSnip := model.Language{LangName: langNames_[i], CodeBoxes: []*model.CodeBox{}}
 		collection := snipHub.Collection(langNames_[i])
-		cur, err := collection.Find(ctx, bson.D{})
+		cur, err := collection.Find(ctxDb, bson.D{})
 		if err != nil { log.Fatal(err) }
-		defer cur.Close(ctx)
-		for cur.Next(ctx) {
+		defer cur.Close(ctxDb)
+		for cur.Next(ctxDb) {
 			var result bson.D
 			err2 := cur.Decode(&result)
 			LangSnip.CodeBoxes = append(LangSnip.CodeBoxes, &model.CodeBox{Title: fmt.Sprintf("%v", result[1].Value), Code: fmt.Sprintf("%v", result[2].Value)})
@@ -110,18 +109,19 @@ func (r *queryResolver) LangFind(ctx context.Context, langName string) (*model.L
 
 // TitleFind is the resolver for the titleFind field.
 func (r *queryResolver) TitleFind(ctx context.Context, title string) ([]*model.Language, error) {
-	snipHub, err := snipHubDBContext(ctx)
+	snipHub, ctxDb, err := snipHubDB()
 	if err != nil {
 		log.Fatal(err)
 	}
+	langNames_ := langNames()
 	langSnips := []*model.Language{};
-	for i := 0; i < len(langNames()); i++ {
-		LangSnip := model.Language{LangName: langNames()[i], CodeBoxes: []*model.CodeBox{}}
-		collection := snipHub.Collection(langNames()[i])
-		cur, err := collection.Find(ctx, bson.D{})
+	for i := 0; i < len(langNames_); i++ {
+		LangSnip := model.Language{LangName: langNames_[i], CodeBoxes: []*model.CodeBox{}}
+		collection := snipHub.Collection(langNames_[i])
+		cur, err := collection.Find(ctxDb, bson.D{})
 		if err != nil { log.Fatal(err) }
-		defer cur.Close(ctx)
-		for cur.Next(ctx) {
+		defer cur.Close(ctxDb)
+		for cur.Next(ctxDb) {
 			var result bson.D
 			err2 := cur.Decode(&result)
 			match1 := regexp.MustCompile("(?i)"+ title).Match([]byte(fmt.Sprintf("%v", result[1].Value)))
@@ -140,11 +140,11 @@ func (r *queryResolver) TitleFind(ctx context.Context, title string) ([]*model.L
 }
 
 func (r *queryResolver) LangNames(ctx context.Context) ([]string, error) {
-	snipHub, err := snipHubDBContext(ctx)
+	snipHub, ctxDb, err := snipHubDB()
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 	}
-	languages, err2 := snipHub.ListCollectionNames(ctx, mongo.NewDeleteManyModel().Filter)
+	languages, err2 := snipHub.ListCollectionNames(ctxDb, bson.D{})
 	if err2 != nil {
 		fmt.Printf("Error: %v\n", err2)
 	}

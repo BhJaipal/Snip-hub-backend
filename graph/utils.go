@@ -14,30 +14,27 @@ import (
 )
 
 func langNames() []string {
-	ctx, cancel := context.WithTimeout(context.TODO(), 1 * time.Second)
-	defer cancel()
-	snipHub, err := snipHubDB()
+	snipHub, ctx, err := snipHubDB()
 	if err != nil {
 		log.Fatal(err)
 	}
-	languages, err := snipHub.ListCollectionNames(ctx, mongo.NewDeleteManyModel().Filter)
+	languages, err := snipHub.ListCollectionNames(ctx, bson.D{})
 	if err != nil {
-		fmt.Printf("Error: %v\n", err)
+		log.Fatalf("Error: %v\n", err)
 	}
 	return languages
 }
 
 func langList() []model.Language {
-	ctx, cancel := context.WithTimeout(context.Background(), 1 * time.Second)
-	defer cancel()
-	snipHub, err := snipHubDB()
+	snipHub, ctx, err := snipHubDB()
 	if err != nil {
 		log.Fatal(err)
 	}
 	langSnips := []model.Language{};
-	for i := 0; i < len(langNames()); i++ {
-		LangSnip := model.Language{LangName: langNames()[i], CodeBoxes: []*model.CodeBox{}}
-		collection := snipHub.Collection(langNames()[i])
+	langNames_ := langNames()
+	for i := 0; i < len(langNames_); i++ {
+		LangSnip := model.Language{LangName: langNames_[i], CodeBoxes: []*model.CodeBox{}}
+		collection := snipHub.Collection(langNames_[i])
 		cur, err := collection.Find(ctx, bson.D{})
 		if err != nil { log.Fatal(err) }
 		defer cur.Close(ctx)
@@ -59,21 +56,21 @@ func langList() []model.Language {
 
 
 func langFind(langName string) (model.Language, error) {
-	snipHub, err := snipHubDB()
+	snipHub, _, err := snipHubDB()
 	if err != nil {
 		log.Fatal(err)
 	}
 	langNames_ := langNames()
-	for i := 0; i < len(langList()); i++ {
-		if langNames()[i] != langName {
+	for i := 0; i < len(langNames_); i++ {
+		if langNames_[i] != langName {
 			continue
 		}
 		LangSnip := model.Language{LangName: langNames_[i], CodeBoxes: []*model.CodeBox{}}
 		collection := snipHub.Collection(langNames_[i])
-		cur, err := collection.Find(context.TODO(), bson.D{})
+		cur, err := collection.Find(context.Background(), bson.D{})
 		if err != nil { log.Fatal(err) }
-		defer cur.Close(context.TODO())
-		for cur.Next(context.TODO()) {
+		defer cur.Close(context.Background())
+		for cur.Next(context.Background()) {
 			var result bson.D
 			err2 := cur.Decode(&result)
 			LangSnip.CodeBoxes = append(LangSnip.CodeBoxes, &model.CodeBox{Title: fmt.Sprintf("%v", result[1].Value), Code: fmt.Sprintf("%v", result[2].Value)})
@@ -89,27 +86,15 @@ func langFind(langName string) (model.Language, error) {
 func mongoUrl() string {
 	return "mongodb://localhost:27017/?directConnection=true"
 }
-func snipHubDB() (*mongo.Database, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 1 * time.Second)
-	defer cancel()
+func snipHubDB() (*mongo.Database, context.Context, error) {
+	ctx, _ := context.WithTimeout(context.Background(), 1 * time.Second)
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoUrl()))
 	if err != nil {
 		log.Fatal(err)
 	}
 	snipHub := client.Database("snip-hub")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return snipHub, nil
-}
-func snipHubDBContext(ctx context.Context) (*mongo.Database, error) {
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoUrl()))
-	if err != nil {
-		log.Fatal(err)
-	}
-	snipHub := client.Database("snip-hub")
-	if err != nil {
-		return nil, err
-	}
-	return snipHub, nil
+	return snipHub, ctx, nil
 }
