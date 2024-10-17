@@ -19,8 +19,7 @@ const httpServer = http.createServer({
 	passPhrase: "J1i16a12"
 }, app);
 
-let ipAddress = networkInterfaces()["wlan0"][0].address;
-let whitelist = ["https://" + ipAddress + ":3000", "https://" + ipAddress + ":3300", "http://" + ipAddress + ":3000", "http://localhost:3000"]
+let whitelist = ["http://localhost:3000", "http://localhost:3300"]
 
 /**
  * @param {IncomingMessage} req
@@ -28,7 +27,7 @@ let whitelist = ["https://" + ipAddress + ":3000", "https://" + ipAddress + ":33
  * @param {() => void} next
  */
 let corsOptions = (req, res, next) => {
-	const origin = req.headers.origin;
+	const origin = "http://" + req.headers.host;
 
 	if (!whitelist.includes(origin)) {
 		res.status(403).send('Forbidden')
@@ -49,6 +48,6 @@ httpServer.listen({ port: 3300 });
 
 console.log(
 	"🚀 Server started at " +
-	chalk.hex("#40A0F0").underline("https://" + ipAddress + ":3300/")
+	chalk.hex("#40A0F0").underline("http://localhost:3300/")
 );
 
