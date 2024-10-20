@@ -1,45 +1,45 @@
 import { MongoClient } from "mongodb";
-import type { WithId } from "mongodb";
+import type { ObjectId, WithId } from "mongodb";
 
 import type { Db } from "mongodb";
-import {
-	Resolvers,
-	ResolversParentTypes,
-	RequireFields,
-	QueryTitleFindArgs,
-	QueryLangFindArgs,
-	MutationSnipAddArgs,
-} from "./types.ts";
 
 let client = new MongoClient("mongodb://localhost:27017/snip-hub");
 let snipHub: Db = client.db("snip-hub");
-let collectionNames: string[] = [];
-let fetching = await snipHub.listCollections().toArray();
-fetching.forEach((collection) => {
-	collectionNames.push(collection.name);
-});
+let collectionNames = async () => {
+	let colNames: string[] = [];
+	let fetching = await snipHub.listCollections().toArray();
+	fetching.forEach((collection) => {
+		colNames.push(collection.name);
+	});
+	return colNames;
+};
 
-export const resolvers: Resolvers = {
+type LanguageWithId = {
+	langName: string;
+	codeBoxes: { title: string; code: string; _id: ObjectId }[];
+};
+type CodeBox = {
+	title: string;
+	code: string;
+	_id: ObjectId;
+};
+
+export const resolvers = {
 	Query: {
-		langList: async () => {
-			let data: {
-				langName: string;
-				codeBoxes: { title: string; code: string }[];
-			}[] = [];
-			for (let el of collectionNames) {
-				let codeBoxesWithId: WithId<{
-					title: string;
-					code: string;
-				}>[] = await snipHub
-					.collection<{ title: string; code: string }>(el)
-					.find()
-					.toArray();
-				let codeBoxes = codeBoxesWithId.map((el) => {
-					return { title: el.title, code: el.code };
-				});
+		langList: async (): Promise<LanguageWithId[]> => {
+			let data: LanguageWithId[] = [];
+			let colNames = await collectionNames();
+			for (let el of colNames) {
+				let codeBoxesWithId: WithId<{ title: string; code: string }>[] =
+					await snipHub
+						.collection<{ title: string; code: string }>(el)
+						.find()
+						.toArray();
 				data.push({
 					langName: el,
-					codeBoxes,
+					codeBoxes: codeBoxesWithId.map((el) => {
+						return { title: el.title, code: el.code, _id: el._id };
+					}),
 				});
 			}
 			if (data.length == 0) {
@@ -47,13 +47,9 @@ export const resolvers: Resolvers = {
 			}
 			return data;
 		},
-		titleFind: async (
-			_: ResolversParentTypes["Query"],
-			args: RequireFields<QueryTitleFindArgs, "title">
-		) => {
-			let title = args.title;
+		titleFind: async (title: string): Promise<LanguageWithId[]> => {
 			let langBoxes = [];
-			for (let el of collectionNames) {
+			for (let el of await collectionNames()) {
 				let out = await snipHub
 					.collection<{ title: string; code: string }>(el)
 					.find({ title: { $regex: new RegExp(title.trim(), "ig") } })
@@ -62,7 +58,11 @@ export const resolvers: Resolvers = {
 				} else {
 					let codeBox: { title: string; code: string }[] = out.map(
 						(el) => {
-							return { title: el.title, code: el.code };
+							return {
+								title: el.title,
+								code: el.code,
+								_id: el._id,
+							};
 						}
 					);
 					langBoxes.push({
@@ -81,34 +81,30 @@ export const resolvers: Resolvers = {
 			}
 			return langBoxes;
 		},
-		langFind: async (
-			_: ResolversParentTypes["Query"],
-			args: RequireFields<QueryLangFindArgs, "langName">
-		) => {
+		langFind: async (langName: string): Promise<LanguageWithId> => {
 			let codeBoxes = await snipHub
-				.collection<{ title: string; code: string }>(args.langName)
+				.collection<{ title: string; code: string }>(langName)
 				.find()
 				.toArray();
 			return {
-				langName: args.langName,
+				langName: langName,
 				codeBoxes: codeBoxes,
 			};
 		},
-		langNames: () => {
-			return collectionNames;
+		langNames: async () => {
+			return await collectionNames();
 		},
 	},
 	Mutation: {
-		snipAdd: async (
-			_: ResolversParentTypes["Mutation"],
-			args: RequireFields<MutationSnipAddArgs, "codeSnip">
-		) => {
+		snipAdd: async (codeSnip: {
+			langName: string;
+			codeBox: { title: string; code: string };
+		}) => {
 			let status: { id: number; message: string } = {
 				id: -1,
 				message: "",
 			};
-			let codeSnip = args.codeSnip;
-			if (collectionNames.includes(codeSnip["langName"])) {
+			if ((await collectionNames()).includes(codeSnip["langName"])) {
 				let titles: string[] = [];
 				let codeBoxes = await snipHub
 					.collection(codeSnip["langName"])
@@ -141,17 +137,10 @@ export const resolvers: Resolvers = {
 					title: codeSnip["codeBox"]["title"],
 					code: codeSnip["codeBox"]["code"],
 				});
-
 				status = {
 					id: 0,
 					message: `new ${codeSnip["langName"]} snippet list created\nYour snippet is added to ${codeSnip.langName} snippets`,
 				};
-
-				collectionNames = [];
-				let fetching = await snipHub.listCollections().toArray();
-				fetching.forEach((collection) => {
-					collectionNames.push(collection.name);
-				});
 			}
 			return status;
 		},
